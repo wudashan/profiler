@@ -5,7 +5,7 @@ public class ProfilerTest {
 
     public static void main(String[] args) throws InterruptedException {
         Profiler.reset();
-        Profiler.init();
+        Profiler.init("Main主流程");
 
         Profiler.enter("1");
 
@@ -29,6 +29,8 @@ public class ProfilerTest {
         Profiler.enter("2");
         Thread.sleep(40);
         Profiler.exit(); // exit for 2
+
+        Profiler.exit(); // exit for root
         System.out.println(Profiler.dump());
         Profiler.reset();
 

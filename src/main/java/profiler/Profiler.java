@@ -2,8 +2,10 @@ package profiler;
 
 import org.apache.commons.lang.StringUtils;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 性能埋点工具
@@ -40,20 +42,9 @@ public class Profiler {
      * 进入埋点方法
      */
     public static void enter(String context) {
-        Entry currentEntry = STACK.get();
-        if (currentEntry == null) {
-            return;
-        }
-        if (currentEntry.endTime == 0) {
-            // 当前操作未完成
-            Entry newEntry = new Entry(currentEntry.root, currentEntry, context);
-            currentEntry.childs.add(newEntry);
-            STACK.set(newEntry);
-        } else {
-            // 当前操作已完成
-            Entry newEntry = new Entry(currentEntry.root, currentEntry.parent, context);
-            currentEntry.parent.childs.add(newEntry);
-            STACK.set(newEntry);
+        Entry currentEntry = getCurrentEntry();
+        if (currentEntry != null) {
+            currentEntry.addChild(context);
         }
     }
 
@@ -61,59 +52,49 @@ public class Profiler {
      * 退出埋点方法
      */
     public static void exit() {
-        Entry entry = STACK.get();
-        if (entry == null) {
-            return;
+        Entry currentEntry = getCurrentEntry();
+        if (currentEntry != null) {
+            currentEntry.finish();
         }
-        if (entry.endTime == 0) {
-            entry.endTime = System.currentTimeMillis();
-            STACK.set(entry.parent);
-        } else {
-            return;
+    }
+
+    private static Entry getCurrentEntry() {
+        Entry root = STACK.get();
+        if (root == null) {
+            return null;
         }
+        Entry entry = root;
+        Entry childEntry = root.getUnFinishedChild();
+        while (childEntry != null) {
+            entry = childEntry;
+            childEntry = entry.getUnFinishedChild();
+        }
+        return entry;
     }
 
     /**
      * 打印调用栈
      */
     public static String dump() {
-        Entry currentEntry = STACK.get();
-        if (currentEntry == null) {
+        Entry root = STACK.get();
+        if (root == null) {
             return StringUtils.EMPTY;
         }
-        StringBuilder sb = new StringBuilder();
-        Entry root = currentEntry.root;
-        sb.append(recursiveDump(root, 0));
-        return sb.toString();
+        return root.dump(StringUtils.EMPTY, 0);
     }
 
     /**
-     * 递归打印
-     */
-    private static String recursiveDump(Entry entry, int index) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(entry.dump());
-        sb.append("\n");
-        index++;
-        for (int i = 0; i < entry.childs.size(); i++) {
-            sb.append(new String(new char[index]).replace("\0", "  "));
-            sb.append("\\--");
-            sb.append(recursiveDump(entry.childs.get(i), index));
-        }
-        return sb.toString();
-    }
-
-
-    /**
-     * 操作实例
+     * 操作节点
      */
     private static final class Entry {
+
+        private static final long UNKNOWN_TIME = -1;
 
         private final Entry root;
         private final Entry parent;
         private final List<Entry> childs;
         private final long startTime;
-        private long endTime;
+        private long endTime = UNKNOWN_TIME;
         private final String context;
 
         Entry(Entry root, Entry parent, String context) {
@@ -124,18 +105,128 @@ public class Profiler {
             this.context = context;
         }
 
-        private String dump() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("耗时：");
-            if (endTime == 0) {
-                return "操作调用树";
+        private String dump(String prefix, int index) {
+
+            StringBuilder result = new StringBuilder(prefix);
+
+            StringBuilder temp = new StringBuilder();
+            if (isFinished()) {
+
+                temp.append("耗时:{1,number}ms ");
+
+                if (getSelfDuration() != UNKNOWN_TIME) {
+                    temp.append("自身耗时:{2,number}ms ");
+                }
+
+                if (getPercentage() != UNKNOWN_TIME) {
+                    temp.append("在父节点里所占时间比:{3,number,##%} ");
+                }
+
+                if (getPercentageInAll() != UNKNOWN_TIME) {
+                    temp.append("在总时间里所占时间比:{4,number,##%} ");
+                }
+
             } else {
-                sb.append(endTime - startTime);
+                temp.append("UNFINISHED ENTRY ");
             }
-            sb.append("ms");
-            sb.append(" - ");
-            sb.append(context);
-            return sb.toString();
+
+            temp.append("内容:{0}");
+
+            result.append(MessageFormat.format(temp.toString(), context, getDuration(), getSelfDuration(), getPercentage(), getPercentageInAll()));
+
+            index++;
+
+            for (int i = 0; i < childs.size(); i++) {
+                result.append(System.lineSeparator());
+                String space = new String(new char[index]).replace("\0", "  ");
+                result.append(childs.get(i).dump(space, index));
+            }
+
+            return result.toString();
+
+        }
+
+        /**
+         * 节点总时间
+         */
+        private long getDuration() {
+            if (endTime == UNKNOWN_TIME) {
+                return UNKNOWN_TIME;
+            } else {
+                return endTime - startTime;
+            }
+        }
+
+        /**
+         * 节点自身时间
+         */
+        private long getSelfDuration() {
+            long duration = getDuration();
+            if (duration == UNKNOWN_TIME) {
+                return UNKNOWN_TIME;
+            }
+            if (childs.isEmpty()) {
+                return duration;
+            }
+            for (Entry child : childs) {
+                //TODO：子节点未结束，则统计有问题
+                duration -= child.getDuration();
+            }
+            return duration;
+        }
+
+        /**
+         * 在父节点所占时间百分比
+         */
+        private double getPercentage() {
+            double duration = getDuration();
+            double parentDuration = UNKNOWN_TIME;
+            if (parent != null && parent.isFinished()) {
+                parentDuration = parent.getDuration();
+            }
+            if (duration == UNKNOWN_TIME || parentDuration == UNKNOWN_TIME) {
+                return UNKNOWN_TIME;
+            }
+            return duration / parentDuration;
+        }
+
+        /**
+         * 在总时间里所占时间百分比
+         */
+        private double getPercentageInAll() {
+            double duration = getDuration();
+            double rootDuration = UNKNOWN_TIME;
+            if (root != null && root.isFinished()) {
+                rootDuration = root.getDuration();
+            }
+            if (duration == UNKNOWN_TIME || rootDuration == UNKNOWN_TIME) {
+                return UNKNOWN_TIME;
+            }
+            return duration / rootDuration;
+        }
+
+        private void addChild(String context) {
+            Entry child = new Entry(root, this, context);
+            childs.add(child);
+        }
+
+        private boolean isFinished() {
+            return endTime != UNKNOWN_TIME;
+        }
+
+        private void finish() {
+            endTime = System.currentTimeMillis();
+        }
+
+        private Entry getUnFinishedChild() {
+            if (childs.isEmpty()) {
+                return null;
+            }
+            Entry last = childs.get(childs.size() - 1);
+            if (last.isFinished()) {
+                return null;
+            }
+            return last;
         }
 
     }
