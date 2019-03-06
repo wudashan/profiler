@@ -1,39 +1,46 @@
 package profiler;
 
+import org.apache.commons.lang.math.RandomUtils;
+
+/**
+ * 性能埋点工具测试类
+ */
 public class ProfilerTest {
 
 
     public static void main(String[] args) throws InterruptedException {
+
         Profiler.reset();
         Profiler.init("Main主流程");
 
-        Profiler.enter("1");
+        try {
+            callRpcInterface();
+            sendMessage();
+            saveData2Db();
+        } finally {
+            Profiler.exit();
+            System.out.println(Profiler.dump());
+            Profiler.reset();
+        }
 
-        Profiler.enter("1.1");
-        Thread.sleep(10);
-        Profiler.enter("1.1.1");
-        Thread.sleep(5);
-        Profiler.exit(); // exit for 1.1.1
-        Profiler.exit(); // exit for 1.1
+    }
 
-        Profiler.enter("1.2");
-        Thread.sleep(20);
-        Profiler.exit(); // exit for 1.2
+    private static void saveData2Db() throws InterruptedException {
+        Profiler.enter("模拟保存数据到数据库");
+        Thread.sleep(RandomUtils.nextInt(100));
+        Profiler.exit();
+    }
 
-        Profiler.enter("1.3");
-        Thread.sleep(30);
-        Profiler.exit(); // exit for 1.3
+    private static void sendMessage() throws InterruptedException {
+        Profiler.enter("模拟发送消息");
+        Thread.sleep(RandomUtils.nextInt(100));
+        Profiler.exit();
+    }
 
-        Profiler.exit(); // exit for 1
-
-        Profiler.enter("2");
-        Thread.sleep(40);
-        Profiler.exit(); // exit for 2
-
-        Profiler.exit(); // exit for root
-        System.out.println(Profiler.dump());
-        Profiler.reset();
-
+    private static void callRpcInterface() throws InterruptedException {
+        Profiler.enter("模拟调用RPC接口");
+        Thread.sleep(RandomUtils.nextInt(100));
+        Profiler.exit();
     }
 
 }
