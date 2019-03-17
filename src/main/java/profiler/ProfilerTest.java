@@ -29,12 +29,14 @@ public class ProfilerTest {
         Profiler.enter("模拟保存数据到数据库");
         Thread.sleep(RandomUtils.nextInt(100));
         doSomeThing();
+        doSomeThing();
         Profiler.exit();
     }
 
     private static void sendMessage() throws InterruptedException {
         Profiler.enter("模拟发送消息");
         Thread.sleep(RandomUtils.nextInt(100));
+        doSomeThing();
         doSomeThing();
         Profiler.exit();
     }

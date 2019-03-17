@@ -80,7 +80,7 @@ public class Profiler {
         if (root == null) {
             return StringUtils.EMPTY;
         }
-        return root.dump(StringUtils.EMPTY, 0);
+        return root.dump(StringUtils.EMPTY, StringUtils.EMPTY);
     }
 
     /**
@@ -105,11 +105,18 @@ public class Profiler {
             this.context = context;
         }
 
-        private String dump(String prefix, int index) {
+        private String dump(String firstPrefix, String nextPrefix) {
+            StringBuilder result = new StringBuilder();
+            recursiveDump(result, firstPrefix, nextPrefix);
+            return result.toString();
+        }
 
-            StringBuilder result = new StringBuilder(prefix);
+        private void recursiveDump(StringBuilder result, String firstPrefix, String nextPrefix) {
+
+            result.append(firstPrefix);
 
             StringBuilder temp = new StringBuilder();
+
             if (isFinished()) {
 
                 temp.append("耗时:{1,number}ms ");
@@ -127,22 +134,24 @@ public class Profiler {
                 }
 
             } else {
-                temp.append("UNFINISHED ENTRY ");
+                temp.append("[UNFINISHED ENTRY]");
             }
 
             temp.append("内容:{0}");
 
             result.append(MessageFormat.format(temp.toString(), context, getDuration(), getSelfDuration(), getPercentage(), getPercentageInAll()));
 
-            index++;
-
+            // 递归打印子节点
             for (int i = 0; i < childs.size(); i++) {
+                Entry child = childs.get(i);
                 result.append(System.lineSeparator());
-                String space = new String(new char[index]).replace("\0", "  ");
-                result.append(childs.get(i).dump(space, index));
+                if (i == childs.size() - 1) {
+                    // 最后一个子节点
+                    child.recursiveDump(result, nextPrefix + "`---", nextPrefix + "   ");
+                } else {
+                    child.recursiveDump(result, nextPrefix + "+---", nextPrefix + "|  ");
+                }
             }
-
-            return result.toString();
 
         }
 
