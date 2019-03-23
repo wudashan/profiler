@@ -10,16 +10,24 @@ public class ProfilerTest {
 
     public static void main(String[] args) throws InterruptedException {
 
+        // 重置调用树
         Profiler.reset();
+        // 初始化调用树
         Profiler.init("Main主流程");
 
         try {
+            // PRC调用
             callRpcInterface();
+            // 数据库操作
             saveData2Db();
+            // 消息发送
             sendMessage();
         } finally {
+            // 结束调用树
             Profiler.exit();
+            // 打印调用树结果
             System.out.println(Profiler.dump());
+            // 重置调用树
             Profiler.reset();
         }
 
