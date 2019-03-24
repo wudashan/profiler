@@ -147,9 +147,9 @@ public class Profiler {
                 result.append(System.lineSeparator());
                 if (i == childs.size() - 1) {
                     // 最后一个子节点
-                    child.recursiveDump(result, nextPrefix + "`---", nextPrefix + "   ");
+                    child.recursiveDump(result, nextPrefix + "`---", nextPrefix + "    ");
                 } else {
-                    child.recursiveDump(result, nextPrefix + "+---", nextPrefix + "|  ");
+                    child.recursiveDump(result, nextPrefix + "+---", nextPrefix + "|   ");
                 }
             }
 

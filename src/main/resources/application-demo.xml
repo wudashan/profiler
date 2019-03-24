@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+        <property name="beanNames">
+            <list>
+                <!-- 对所有以Repository/Facade/Component/Service结尾命名的类，进行方法拦截 -->
+                <value>*Repository</value>
+                <value>*Facade</value>
+                <value>*Component</value>
+                <value>*Service</value>
+            </list>
+        </property>
+        <property name="interceptorNames">
+            <list>
+                <!-- 声明拦截器 -->
+                <value>commonMethodInterceptor</value>
+            </list>
+        </property>
+    </bean>
+
+</beans>
