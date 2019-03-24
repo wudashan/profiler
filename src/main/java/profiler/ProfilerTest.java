@@ -1,6 +1,6 @@
 package profiler;
 
-import org.apache.commons.lang.math.RandomUtils;
+import util.ThreadUtils;
 
 /**
  * 性能埋点工具测试类
@@ -8,7 +8,7 @@ import org.apache.commons.lang.math.RandomUtils;
 public class ProfilerTest {
 
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
         // 重置调用树
         Profiler.reset();
@@ -33,31 +33,31 @@ public class ProfilerTest {
 
     }
 
-    private static void saveData2Db() throws InterruptedException {
+    private static void saveData2Db() {
         Profiler.enter("模拟保存数据到数据库");
-        Thread.sleep(RandomUtils.nextInt(100));
+        ThreadUtils.randomSleep();
         doSomeThing();
         doSomeThing();
         Profiler.exit();
     }
 
-    private static void sendMessage() throws InterruptedException {
+    private static void sendMessage() {
         Profiler.enter("模拟发送消息");
-        Thread.sleep(RandomUtils.nextInt(100));
+        ThreadUtils.randomSleep();
         doSomeThing();
         doSomeThing();
         Profiler.exit();
     }
 
-    private static void callRpcInterface() throws InterruptedException {
+    private static void callRpcInterface() {
         Profiler.enter("模拟调用RPC接口");
-        Thread.sleep(RandomUtils.nextInt(100));
+        ThreadUtils.randomSleep();
         Profiler.exit();
     }
 
-    private static void doSomeThing() throws InterruptedException {
+    private static void doSomeThing() {
         Profiler.enter("模拟操作");
-        Thread.sleep(RandomUtils.nextInt(100));
+        ThreadUtils.randomSleep();
         Profiler.exit();
     }
 
